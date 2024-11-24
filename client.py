@@ -9,7 +9,7 @@ TIMEOUT = 5
 VALID_QUERIES = [
     "What is the average moisture inside my kitchen fridge in the past three hours?",
     "What is the average water consumption per cycle in my smart dishwasher?",
-    "Which device consumed more electricity among my three IoT devices (tworefrigerators and a dishwasher)?"
+    "Which device consumed more electricity among my three IoT devices (two refrigerators and a dishwasher)?"
 ]
 
 def display_valid_queries():
