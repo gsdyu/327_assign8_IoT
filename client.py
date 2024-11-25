@@ -1,3 +1,8 @@
+'''
+File: client.py
+Description: The client where the user can query information about their IoT devices (2 Smart Fridge and a dishwasher)
+'''
+
 import socket
 import ipaddress
 

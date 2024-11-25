@@ -1,3 +1,10 @@
+'''
+File: server.py
+Description: The backend server that will handle the user query from client.py by calling the necesarry data from the MongoDB
+             database. The queries are related to the IoT assignment of the sensors for 2 Smart Fridges and a dishwasher of 
+             the user (virtually created in Dataniz).
+'''
+
 import socket
 import ipaddress
 from pymongo import MongoClient
@@ -15,12 +22,14 @@ PAYLOAD = 2036
 
 MONGO_URI = os.getenv('MONGODB_URI')
 client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
-db = client['IoT_Database']                      # Chong dong put ur stuff here
+db = client['IoT_Database']                      
 collection = db['IoT_Table_virtual']  
 
 meta_collection = client['IoT_Database']['IoT_Table_metadata']
 DEVICE_METADATA = {}
 
+# create DEVICE_METADATA to be used
+# format for DEVICE_METADATA shown in readme or by running metadata.py
 for device in meta_collection.find():
     device = device['customAttributes']
     board = device['children'][0]['customAttributes']
@@ -28,15 +37,18 @@ for device in meta_collection.find():
     for sensor in sensors:
         sensor = sensor['customAttributes']
         if device['name'] not in DEVICE_METADATA: DEVICE_METADATA[device['name']] = {}
+        # the type/role of the sensor is not an attribute in the payload
+        # but it is mentioned in the sensor name. (ex fridge1_moist_{name of actual sensor})
+        # extracts the sensor's type/role by relying on the name
+        # note: logic relys on the name; should add try-catch/check in case invalid name
         sensor_type = re.search(r"(?<=_)(.*)(?=_)", sensor['name']).group()
         DEVICE_METADATA[device['name']][sensor_type] = {
                 "device_name": device["name"],
                 "board_name": board["name"],
                 "sensor_name": sensor["name"],
-                "unit": sensor["unit"],
-                "minValue": sensor["minValue"],
-                "maxValue": sensor["maxValue"],
+                "unit": sensor["unit"]
         }
+
         if sensor_type == 'water':
             DEVICE_METADATA[device['name']][sensor_type]['conversion_factor'] = 0.264172
 
