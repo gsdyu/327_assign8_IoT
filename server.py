@@ -70,15 +70,14 @@ def get_electricity_consumption():
             "payload.board_name": device['board_name'],
             f"payload.{device['sensor_name']}": {"$exists": True}  
         }
-        latest_reading = collection.find_one(query, sort=[("time", -1)])
+        latest_reading = collection.find(query)
         if latest_reading:
             try:
-                raw_value = float(latest_reading["payload"][device['sensor_name']])
+                elec_sum = sum(list(map(lambda doc: float(doc["payload"][device['sensor_name']]), latest_reading)))
                 conversion_factor = 1
-                result[device['device_name']] = raw_value * conversion_factor
+                result[device['device_name']] = elec_sum * conversion_factor
             except (KeyError, ValueError) as e:
                 result[device['device_name']] = 0
-    print(result)
     return result
 
 def get_pst_time():
