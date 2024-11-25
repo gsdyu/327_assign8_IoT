@@ -178,7 +178,6 @@ def process_query(query):
     return "Invalid query"
 
 # user input for ip and port
-'''
 while True:
     try:
         host = input("Input ip: ")
@@ -199,9 +198,7 @@ while True:
         print("Needs to be an int")
     except Exception as e:
         print(f"An error occurred: {e}")
-'''
-host = '0.0.0.0'
-port = 1234
+
 # socket.SOCK_STREAM has the socket use datagram; TCP Connection
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((host, port))
