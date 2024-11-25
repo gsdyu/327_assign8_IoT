@@ -30,6 +30,7 @@ for device in meta_collection.find():
         if device['name'] not in DEVICE_METADATA: DEVICE_METADATA[device['name']] = {}
         sensor_type = re.search(r"(?<=_)(.*)(?=_)", sensor['name']).group()
         DEVICE_METADATA[device['name']][sensor_type] = {
+                "device_name": device["name"],
                 "board_name": board["name"],
                 "sensor_name": sensor["name"],
                 "unit": sensor["unit"],
@@ -61,37 +62,24 @@ def get_water_consumption():
 
 def get_electricity_consumption():
     """Get electricity consumption for all devices"""
-    devices = ["Arduino Pro Mini - test", "ESP-12S - Test"]  
+    devices = list(map(lambda device: device['current'], DEVICE_METADATA.values())) 
     result = {}
     
     for device in devices:
         query = {
-            "payload.board_name": device,
-            "payload.MPU6050 - test": {"$exists": True}  
+            "payload.board_name": device['board_name'],
+            f"payload.{device['sensor_name']}": {"$exists": True}  
         }
         latest_reading = collection.find_one(query, sort=[("time", -1)])
         if latest_reading:
             try:
-                raw_value = float(latest_reading["payload"]["MPU6050 - test"])
-                device_type = next(k for k, v in DEVICE_METADATA.items() if v["board_name"] == device)
-                conversion_factor = DEVICE_METADATA[device_type]["conversion_factor"]
-                result[device] = raw_value * conversion_factor
-            except (KeyError, ValueError):
-                result[device] = 0
-    
+                raw_value = float(latest_reading["payload"][device['sensor_name']])
+                conversion_factor = 1
+                result[device['device_name']] = raw_value * conversion_factor
+            except (KeyError, ValueError) as e:
+                result[device['device_name']] = 0
+    print(result)
     return result
-
-'''
-def convert_to_rh_percent(moisture_value):
-    """Convert moisture reading to Relative Humidity percentage using metadata"""
-    try:
-        value = float(moisture_value)
-        # removed conversion
-        return value 
-    except (ValueError, TypeError):
-        return 0.0
-        '''
-
 
 def get_pst_time():
     """Get current time in PST"""
@@ -150,6 +138,7 @@ def process_query(query):
     elif query == "Which device consumed more electricity among my three IoT devices (two refrigerators and a dishwasher)?":
         try:
             consumption_data = get_electricity_consumption()
+            print('working')
             
             if not consumption_data:
                 return "No electricity consumption data available"
