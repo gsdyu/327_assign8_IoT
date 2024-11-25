@@ -89,7 +89,7 @@ def get_electricity_consumption(collection):
                 #does the conversion for the values given from the current sensor. The current sensor outputs in volt, which needs to be converted back to amp.
                 #the current sensor essentially has amp be inputted, and outputs voltage (the output voltage is relative to input amp). 
                 #just need to convert this output voltage back to amp input (basic algebra solve for x).
-                #2.5 is the baseline output voltage when no/0 amp is inputted. 0.1 is the sensitivity/the direct conversion rate of A to voltage/(A/V)
+                #2.5 is the baseline output voltage when no/0 amp is inputted. 0.1 is the sensitivity/the direct conversion rate of A to voltage/(V/A)
                 #sidenote: gets both the voltage and current payload in one statement/line, cannot do seperate for each query as docs can only be searched through once;
                 elec_list = (list(map(lambda doc: {'current': (float(doc["payload"][device['current']['sensor_name']])-2.5)/0.1, 'voltage': float(doc["payload"][device['voltage']['sensor_name']])}, latest_reading)))
                 curr_list = list(map(lambda pair: pair['current'], elec_list))
