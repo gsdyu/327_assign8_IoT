@@ -56,4 +56,4 @@ for device in meta_collection.find():
         }
         if sensor_type == 'water':
             DATA[device['name']][sensor_type]['conversation_factor'] = 0.264172
-pprint(DATA['dishwasher']['water'])
+pprint(DATA)

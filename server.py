@@ -38,12 +38,11 @@ for device in meta_collection.find():
         }
         if sensor_type == 'water':
             DEVICE_METADATA[device['name']][sensor_type]['conversion_factor'] = 0.264172
-print(DEVICE_METADATA)
 
 def get_moisture_readings(start_time=None, end_time=None):
     """Get moisture readings from the virtual collection"""
     query = {
-        "payload.board_name": DEVICE_METADATA["fridge1"]["board_name"],
+        "payload.board_name": DEVICE_METADATA["SmartFridge1"]["moist"]["board_name"],
         "payload.fridge1_moist_AM2320": {"$exists": True}
     }
     
@@ -82,6 +81,7 @@ def get_electricity_consumption():
     
     return result
 
+'''
 def convert_to_rh_percent(moisture_value):
     """Convert moisture reading to Relative Humidity percentage using metadata"""
     try:
@@ -90,6 +90,8 @@ def convert_to_rh_percent(moisture_value):
         return value 
     except (ValueError, TypeError):
         return 0.0
+        '''
+
 
 def get_pst_time():
     """Get current time in PST"""
@@ -117,7 +119,7 @@ def process_query(query):
                 return "No moisture data available for the past three hours"
             
             avg_moisture = sum(moisture_values) / len(moisture_values)
-            metadata_info = f"Device: {DEVICE_METADATA['fridge1']['board_name']}, Unit: {DEVICE_METADATA['fridge1']['unit']}"
+            metadata_info = f"Device: {DEVICE_METADATA['SmartFridge1']['moist']['board_name']}, Unit: {DEVICE_METADATA['SmartFridge1']['moist']['unit']}"
             
             return f"Average moisture: {avg_moisture:.2f}% RH\nMetadata: {metadata_info}"
         except Exception as e:
@@ -131,9 +133,7 @@ def process_query(query):
             for doc in readings:
                 try:
                     raw_consumption = float(doc["payload"]["dish_water_YF-S201"])
-                    print(raw_consumption,'bah')
                     gallons = raw_consumption * DEVICE_METADATA["dishwasher"]['water']["conversion_factor"]
-                    print(gallons)
                     consumption_values.append(gallons)
                 except (KeyError, ValueError, TypeError) as e:
                     print(e)
