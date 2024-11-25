@@ -22,8 +22,7 @@ PAYLOAD = 2036
 
 MONGO_URI = os.getenv('MONGODB_URI')
 client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
-db = client['IoT_Database']                      
-collection = db['IoT_Table_virtual']  
+default_collection = client['IoT_Database']['IoT_Table_virtual']  
 
 meta_collection = client['IoT_Database']['IoT_Table_metadata']
 DEVICE_METADATA = {}
@@ -52,7 +51,7 @@ for device in meta_collection.find():
         if sensor_type == 'water':
             DEVICE_METADATA[device['name']][sensor_type]['conversion_factor'] = 0.264172
 
-def get_moisture_readings(start_time=None, end_time=None):
+def get_moisture_readings(collection, start_time=None, end_time=None):
     """Get moisture readings from the virtual collection"""
     query = {
         "payload.board_name": DEVICE_METADATA["SmartFridge1"]["moist"]["board_name"],
@@ -64,7 +63,7 @@ def get_moisture_readings(start_time=None, end_time=None):
     
     return collection.find(query)
 
-def get_water_consumption():
+def get_water_consumption(collection):
     """Get water consumption data for dishwasher"""
     query = {
         "payload.board_name": DEVICE_METADATA["dishwasher"]['water']["board_name"],
@@ -72,24 +71,33 @@ def get_water_consumption():
     }
     return collection.find(query)
 
-def get_electricity_consumption():
-    """Get electricity consumption for all devices"""
-    devices = list(map(lambda device: device['current'], DEVICE_METADATA.values())) 
+def get_electricity_consumption(collection):
+    """Get electricity consumption for all devices
+       Uses both a current sensor (gives system amp flow) and voltage sensor (gives system volt)
+       Multiplying amp and volt together gives watts. divide by 1000 after gives kilowatts"""
+    devices = list(map(lambda device: {'current': device['current'], 'voltage': device['voltage']}, DEVICE_METADATA.values())) 
     result = {}
     
     for device in devices:
         query = {
-            "payload.board_name": device['board_name'],
-            f"payload.{device['sensor_name']}": {"$exists": True}  
+            "payload.board_name": device['current']['board_name'],
+            f"payload.{device['voltage']['sensor_name']}": {"$exists": True}  
         }
         latest_reading = collection.find(query)
         if latest_reading:
             try:
-                elec_sum = sum(list(map(lambda doc: float(doc["payload"][device['sensor_name']]), latest_reading)))
-                conversion_factor = 1
-                result[device['device_name']] = elec_sum * conversion_factor
+                #does the conversion for the values given from the current sensor. The current sensor outputs in volt, which needs to be converted back to amp.
+                #the current sensor essentially has amp be inputted, and outputs voltage (the output voltage is relative to input amp). 
+                #just need to convert this output voltage back to amp input (basic algebra solve for x).
+                #2.5 is the baseline output voltage when no/0 amp is inputted. 0.1 is the sensitivity/the direct conversion rate of A to voltage/(A/V)
+                #sidenote: gets both the voltage and current payload in one statement/line, cannot do seperate for each query as docs can only be searched through once;
+                elec_list = (list(map(lambda doc: {'current': (float(doc["payload"][device['current']['sensor_name']])-2.5)/0.1, 'voltage': float(doc["payload"][device['voltage']['sensor_name']])}, latest_reading)))
+                curr_list = list(map(lambda pair: pair['current'], elec_list))
+                volt_list = list(map(lambda pair: pair['voltage'], elec_list))
+                #(current*voltage)/1000=kilowatts
+                result[device['current']['device_name']] = sum(x * y for x, y in zip(curr_list, volt_list))/1000 
             except (KeyError, ValueError) as e:
-                result[device['device_name']] = 0
+                result[device['current']['device_name']] = 0
     return result
 
 def get_pst_time():
@@ -99,12 +107,18 @@ def get_pst_time():
 
 def process_query(query):
     """Process incoming queries and return appropriate response"""
+
+    #updates the collection everytime there is a query/becomes up to date
+    client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
+    db = client['IoT_Database']                      
+    collection = db['IoT_Table_virtual']  
+
     if query == "What is the average moisture inside my kitchen fridge in the past three hours?":
         try:
             end_time = get_pst_time()
             start_time = end_time - timedelta(hours=3)
             
-            readings = get_moisture_readings(start_time, end_time)
+            readings = get_moisture_readings(collection, start_time, end_time)
             moisture_values = []
             
             for doc in readings:
@@ -126,7 +140,7 @@ def process_query(query):
 
     elif query == "What is the average water consumption per cycle in my smart dishwasher?":
         try:
-            readings = get_water_consumption()
+            readings = get_water_consumption(collection)
             consumption_values = []
             
             for doc in readings:
@@ -142,20 +156,19 @@ def process_query(query):
                 return "No water consumption data available"
             
             avg_consumption = sum(consumption_values) / len(consumption_values)
-            return f"Average water consumption: {avg_consumption:.2f} gallons"
+            return f"Average water consumption: {avg_consumption:.2f} gallons per minute"
         except Exception as e:
             return f"Error processing water consumption query: {str(e)}"
 
     elif query == "Which device consumed more electricity among my three IoT devices (two refrigerators and a dishwasher)?":
         try:
-            consumption_data = get_electricity_consumption()
-            print('working')
+            consumption_data = get_electricity_consumption(collection)
             
             if not consumption_data:
                 return "No electricity consumption data available"
             
             max_consumer = max(consumption_data.items(), key=lambda x: x[1])
-            consumptions = "\n".join([f"{device}: {value:.2f} kWh" 
+            consumptions = "\n".join([f"{device}: {value:.2f} kW" 
                                     for device, value in consumption_data.items()])
             
             return f"Device Electricity Consumption:\n{consumptions}\n\nHighest consumer: {max_consumer[0]} with {max_consumer[1]:.2f} kWh"
