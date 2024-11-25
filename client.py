@@ -13,9 +13,16 @@ VALID_QUERIES = [
 ]
 
 def display_valid_queries():
-    print("\nValid queries:")
-    for query in VALID_QUERIES:
-        print(f"- {query}")
+    print("\nValid queries (enter number or full query):")
+    for i, query in enumerate(VALID_QUERIES, 1):
+        print(f"{i}. {query}")
+
+def get_valid_query(message):
+    if message.isdigit():
+        index = int(message) - 1
+        if 0 <= index < len(VALID_QUERIES):
+            return VALID_QUERIES[index]
+    return message if message in VALID_QUERIES else None
 
 # user input for ip and port
 while True:
@@ -53,14 +60,15 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             print(f'Message being sent: {message}')
             print(f"Client: Sending message '{message}' to Server host: {host}, with port: {port}")
             s.sendall(message.encode())
-        elif message not in VALID_QUERIES:
-            print("Sorry, this query cannot be processed. Please try one of the valid queries listed above.")
-            continue
         else:
-            print(f'Message being sent: {message}')
-            print(f"Client: Sending message '{message}' to Server host: {host}, with port: {port}")
+            query = get_valid_query(message)
+            if query is None:
+                print("Sorry, this query cannot be processed. Please try one of the valid queries listed above.")
+                continue
+            print(f'Message being sent: {query}')
+            print(f"Client: Sending message '{query}' to Server host: {host}, with port: {port}")
             try:
-                s.sendall(message.encode())
+                s.sendall(query.encode())
             except Exception as e:
                 print(f"Error occurred: {e}")
             
