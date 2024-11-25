@@ -25,6 +25,7 @@ def get_valid_query(message):
     return message if message in VALID_QUERIES else None
 
 # user input for ip and port
+'''
 while True:
     try:
         host = input("Input ip: ")
@@ -45,7 +46,9 @@ while True:
         print("Needs to be an int")
     except Exception as e:
         print(f"An error occurred: {e}")
-
+'''
+host = '192.168.56.1'
+port = 1234
 # socket.SOCK_STREAM has the socket use datagram; TCP  Connection
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.connect((host, port))

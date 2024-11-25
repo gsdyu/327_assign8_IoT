@@ -1,10 +1,12 @@
 import socket
 import ipaddress
 from pymongo import MongoClient
+from pymongo.server_api import ServerApi
 from datetime import datetime, timedelta
 import pytz
 from dotenv import load_dotenv
 import os
+import re
 
 load_dotenv()
 
@@ -12,37 +14,37 @@ PAYLOAD = 2036
 
 
 MONGO_URI = os.getenv('MONGODB_URI')
-client = MongoClient(MONGO_URI)
-db = client['test']                      # Chong dong put ur stuff here
-collection = db['Stuff_virtual']  
+client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
+db = client['IoT_Database']                      # Chong dong put ur stuff here
+collection = db['IoT_Table_virtual']  
 
-# Nam stuff CHANGE THIS TOO CHONG DONG at least board name the unit conversion stuff keep
-DEVICE_METADATA = {
-    "kitchen_fridge": {
-        "board_name": "Arduino Pro Mini - test",
-        "sensor_type": "Moisture Meter - Moisture MEter",
-        "unit": "RH%",
-        "conversion_factor": 1.0  
-    },
-    "test_device": {
-        "board_name": "ESP-12S - Test",
-        "sensor_type": "MPU6050 - test",
-        "unit": "kWh",
-        "conversion_factor": 1.0  
-    },
-    "smart_dishwasher": {
-        "board_name": "Smart Dishwasher",
-        "sensor_type": "Water Consumption",
-        "unit": "gallons",
-        "conversion_factor": 0.264172  
-    }
-}
+meta_collection = client['IoT_Database']['IoT_Table_metadata']
+DEVICE_METADATA = {}
+
+for device in meta_collection.find():
+    device = device['customAttributes']
+    board = device['children'][0]['customAttributes']
+    sensors = board['children']
+    for sensor in sensors:
+        sensor = sensor['customAttributes']
+        if device['name'] not in DEVICE_METADATA: DEVICE_METADATA[device['name']] = {}
+        sensor_type = re.search(r"(?<=_)(.*)(?=_)", sensor['name']).group()
+        DEVICE_METADATA[device['name']][sensor_type] = {
+                "board_name": board["name"],
+                "sensor_name": sensor["name"],
+                "unit": sensor["unit"],
+                "minValue": sensor["minValue"],
+                "maxValue": sensor["maxValue"],
+        }
+        if sensor_type == 'water':
+            DEVICE_METADATA[device['name']][sensor_type]['conversion_factor'] = 0.264172
+print(DEVICE_METADATA)
 
 def get_moisture_readings(start_time=None, end_time=None):
     """Get moisture readings from the virtual collection"""
     query = {
-        "payload.board_name": DEVICE_METADATA["kitchen_fridge"]["board_name"],
-        "payload.Moisture Meter - Moisture MEter": {"$exists": True}
+        "payload.board_name": DEVICE_METADATA["fridge1"]["board_name"],
+        "payload.fridge1_moist_AM2320": {"$exists": True}
     }
     
     if start_time and end_time:
@@ -53,8 +55,8 @@ def get_moisture_readings(start_time=None, end_time=None):
 def get_water_consumption():
     """Get water consumption data for dishwasher"""
     query = {
-        "payload.board_name": DEVICE_METADATA["smart_dishwasher"]["board_name"],
-        "payload.Water Consumption": {"$exists": True}
+        "payload.board_name": DEVICE_METADATA["dishwasher"]['water']["board_name"],
+        "payload.dish_water_YF-S201": {"$exists": True}
     }
     return collection.find(query)
 
@@ -84,7 +86,8 @@ def convert_to_rh_percent(moisture_value):
     """Convert moisture reading to Relative Humidity percentage using metadata"""
     try:
         value = float(moisture_value)
-        return value * DEVICE_METADATA["kitchen_fridge"]["conversion_factor"]
+        # removed conversion
+        return value 
     except (ValueError, TypeError):
         return 0.0
 
@@ -105,7 +108,7 @@ def process_query(query):
             
             for doc in readings:
                 try:
-                    moisture = float(doc["payload"]["Moisture Meter - Moisture MEter"])
+                    moisture = float(doc["payload"]["fridge1_moist_AM2320"])
                     moisture_values.append(moisture)
                 except (KeyError, ValueError, TypeError):
                     continue
@@ -114,7 +117,7 @@ def process_query(query):
                 return "No moisture data available for the past three hours"
             
             avg_moisture = sum(moisture_values) / len(moisture_values)
-            metadata_info = f"Device: {DEVICE_METADATA['kitchen_fridge']['board_name']}, Unit: {DEVICE_METADATA['kitchen_fridge']['unit']}"
+            metadata_info = f"Device: {DEVICE_METADATA['fridge1']['board_name']}, Unit: {DEVICE_METADATA['fridge1']['unit']}"
             
             return f"Average moisture: {avg_moisture:.2f}% RH\nMetadata: {metadata_info}"
         except Exception as e:
@@ -127,10 +130,13 @@ def process_query(query):
             
             for doc in readings:
                 try:
-                    raw_consumption = float(doc["payload"]["Water Consumption"])
-                    gallons = raw_consumption * DEVICE_METADATA["smart_dishwasher"]["conversion_factor"]
+                    raw_consumption = float(doc["payload"]["dish_water_YF-S201"])
+                    print(raw_consumption,'bah')
+                    gallons = raw_consumption * DEVICE_METADATA["dishwasher"]['water']["conversion_factor"]
+                    print(gallons)
                     consumption_values.append(gallons)
-                except (KeyError, ValueError, TypeError):
+                except (KeyError, ValueError, TypeError) as e:
+                    print(e)
                     continue
             
             if not consumption_values:
@@ -159,6 +165,7 @@ def process_query(query):
     return "Invalid query"
 
 # user input for ip and port
+'''
 while True:
     try:
         host = input("Input ip: ")
@@ -179,7 +186,9 @@ while True:
         print("Needs to be an int")
     except Exception as e:
         print(f"An error occurred: {e}")
-
+'''
+host = '0.0.0.0'
+port = 1234
 # socket.SOCK_STREAM has the socket use datagram; TCP Connection
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((host, port))
