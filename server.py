@@ -29,7 +29,7 @@ meta_collection = client['IoT_Database']['IoT_Table_metadata']
 DEVICE_METADATA = {}
 
 # create DEVICE_METADATA to be used
-# format for DEVICE_METADATA shown in readme or by running metadata.py
+# format for DEVICE_METADATA shown in readme
 for device in meta_collection.find():
     device = device['customAttributes']
     board = device['children'][0]['customAttributes']
