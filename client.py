@@ -51,8 +51,10 @@ while True:
     except Exception as e:
         print(f"An error occurred: {e}")
 
+
 # socket.SOCK_STREAM has the socket use datagram; TCP  Connection
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    print(f'\nAttempting connection to {host}:{port}...')
     s.connect((host, port))
     s.settimeout(TIMEOUT)
     while True:
@@ -62,7 +64,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
         # Check if message is valid
         if message.lower() == 'end':
-            print(f'Message being sent: {message}')
+            print(f'\nMessage being sent: {message}')
             print(f"Client: Sending message '{message}' to Server host: {host}, with port: {port}")
             s.sendall(message.encode())
         else:
@@ -70,7 +72,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if query is None:
                 print("Sorry, this query cannot be processed. Please try one of the valid queries listed above.")
                 continue
-            print(f'Message being sent: {query}')
+            print(f'\nMessage being sent: {query}')
             print(f"Client: Sending message '{query}' to Server host: {host}, with port: {port}")
             try:
                 s.sendall(query.encode())
@@ -82,7 +84,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # for both exceptions, continue. the code ahead that provide a summary requires a
         # success response from the server; these error indicate that a failed response.
         except socket.timeout:
-            print(f"No response from server after {TIMEOUT} seconds")
+            print(f"\nNo response from server after {TIMEOUT} seconds")
             continue
         except ConnectionResetError as e:
             print(f"\nConnection Error occurred. Ensure the server is up before sending a message")

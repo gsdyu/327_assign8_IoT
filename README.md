@@ -1,4 +1,8 @@
-# IoT System - Assignment 8 [Group 30] Justin Chong, Nam Ton
+# IoT System - Assignment 8 
+
+## Group 30 - Authors
+- **Justin Chong** 
+- **Nam Ton**
 
 ## System Requirements
 - Python 3.x
@@ -10,14 +14,18 @@
 1. Clone the repository
 
 2. Create .env file in project root with your MongoDB URI: (also add a git ignore with a .env just in case cause you don't want to share it to the public)
+
    MONGODB_URI=mongodb+srv://username:<password>@cluster0.xxxx.mongodb.net/?retryWrites=true&w=majority
+
+- for privacy reasons, the MONGODB_URI we used is only provided in the report submitted 
 
 3. Configure Database:
 - Database name: 'test' (This is example this is where you would put your database name)
 - Collection: 'Stuff_virtual' (This is example this is where you would put your collection name)
 - Ensure your IoT devices are sending data to the correct collection
+    - We used Dataniz (dataniz.com) to generate the virtual sensors and send the data to our database
     - The sensor name should be in the format [device-name]_[sensor-function]_[actual-sensor-name]
-    - The server parses the sensor function from the sensor name with regex
+      - The server parses the sensor function from the sensor name with regex
 
 ## Running the System
 

@@ -20,8 +20,11 @@ load_dotenv()
 PAYLOAD = 2036
 
 
+# env var MONGODB_URI; Mongo DB connection link
 MONGO_URI = os.getenv('MONGODB_URI')
+print('\nConnecting to Mongo...')
 client = MongoClient(MONGO_URI, server_api=ServerApi('1'))
+print('\nMongo Connection established!')
 default_collection = client['IoT_Database']['IoT_Table_virtual']  
 
 meta_collection = client['IoT_Database']['IoT_Table_metadata']
@@ -180,7 +183,7 @@ def process_query(query):
 # user input for ip and port
 while True:
     try:
-        host = input("Input ip: ")
+        host = input("\nInput ip: ")
         ipaddress.ip_address(host)
         print(f"Ip address chosen: {host}")
         break
@@ -200,11 +203,13 @@ while True:
         print(f"An error occurred: {e}")
 
 # socket.SOCK_STREAM has the socket use datagram; TCP Connection
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    print(f"\nServer Host: {host}, Server Port: {port}")
+    print('\nListening for servers...')
     s.bind((host, port))
     s.listen()
     conn, addr = s.accept()
-    print(f"Server Host: {host}, Server Port: {port}")
     while True:
         print("\nWaiting for client message... ")
         data = conn.recv(PAYLOAD)
