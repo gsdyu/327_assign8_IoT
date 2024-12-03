@@ -98,7 +98,8 @@ def get_electricity_consumption(collection):
                 curr_list = list(map(lambda pair: pair['current'], elec_list))
                 volt_list = list(map(lambda pair: pair['voltage'], elec_list))
                 #(current*voltage)/1000=kilowatts
-                result[device['current']['device_name']] = sum(x * y for x, y in zip(curr_list, volt_list))/1000 
+                # abs cause energy can be negative. it being negative does not affect energy usage
+                result[device['current']['device_name']] = sum(abs(x * y) for x, y in zip(curr_list, volt_list))/1000 
             except (KeyError, ValueError) as e:
                 result[device['current']['device_name']] = 0
     return result
@@ -174,7 +175,7 @@ def process_query(query):
             consumptions = "\n".join([f"{device}: {value:.2f} kW" 
                                     for device, value in consumption_data.items()])
             
-            return f"Device Electricity Consumption:\n{consumptions}\n\nHighest consumer: {max_consumer[0]} with {max_consumer[1]:.2f} kWh"
+            return f"Device Electricity Consumption:\n{consumptions}\n\nHighest consumer: {max_consumer[0]} with {max_consumer[1]:.2f} kW"
         except Exception as e:
             return f"Error processing electricity consumption query: {str(e)}"
 

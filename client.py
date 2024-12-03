@@ -32,7 +32,7 @@ def get_valid_query(message):
 # user input for ip and port
 while True:
     try:
-        host = input("Input ip: ")
+        host = input("\nInput ip: ")
         ipaddress.ip_address(host)
         print(f"Ip address chosen: {host}")
         break
