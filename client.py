@@ -51,7 +51,6 @@ while True:
     except Exception as e:
         print(f"An error occurred: {e}")
 
-
 # socket.SOCK_STREAM has the socket use datagram; TCP  Connection
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     print(f'\nAttempting connection to {host}:{port}...')
